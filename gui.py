@@ -28,9 +28,8 @@ def main():
             )
 
         gpd_files = gpd.GeoSeries(shape_files, crs=4326)
-        print(gpd_files)
-        gpd_files.plot()
-        # TODO: change color based on cols_list
+        fig, ax = plt.subplots()
+        gpd_files.plot(ax=ax, color=cols_list)
 
         plt.savefig(
             "road_clustering.png", bbox_inches="tight"
@@ -43,9 +42,9 @@ def main():
                 width=width, height=height, default_value=data2, tag="road_clustering"
             )
         # cols_list
-        with dpg.window(label="Tutorial"):
-            dpg.add_image("road_pca")
+        with dpg.window(label="Clustering Results"):
             dpg.add_image("road_clustering")
+            dpg.add_image("road_pca")
 
     def run_script():
         filepath = dpg.get_value(text)

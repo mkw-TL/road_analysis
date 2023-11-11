@@ -232,6 +232,7 @@ def show_results(list_of_connected_dicts):
 
     pd.reset_option("all")
 
+    # TODO: see results from projecting first.
     kmeans = KMeans(n_clusters=6)
     kmeans.fit(df)
     # kmeans first and then pca later
@@ -359,4 +360,4 @@ def main(filepath):
 
 
 if __name__ == "__main__":
-    main(filepath="~/Downloads/tl_rd22_51001_roads.zip")  # Lexington, VA by default
+    main(filepath="~/Downloads/tl_rd22_51001_roads.zip")
