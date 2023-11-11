@@ -153,13 +153,13 @@ def main():
         viewer = dpg.add_text(label="Text", tag="viewer")
         # dpg.hide_item(viewer)
 
-        dpg.bind_theme(global_theme)
+    dpg.bind_theme(global_theme)
 
-        dpg.create_viewport(title="Analyze Roads", width=800, height=600)
-        dpg.setup_dearpygui()
-        dpg.show_viewport()
-        dpg.start_dearpygui()
-        dpg.destroy_context()
+    dpg.create_viewport(title="Analyze Roads", width=800, height=600)
+    dpg.setup_dearpygui()
+    dpg.show_viewport()
+    dpg.start_dearpygui()
+    dpg.destroy_context()
 
 
 if __name__ == "__main__":
