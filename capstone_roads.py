@@ -21,7 +21,6 @@ import copy
 
 # pip install Amazon-DenseClus
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 plt.switch_backend("Agg")  # so no issues with GUI backend
@@ -32,8 +31,6 @@ sns.set_style("darkgrid", {"axes.facecolor": ".9"})
 sns.set(rc={"figure.figsize": (10, 8)})
 
 import pandas as pd
-from sklearn import metrics
-from sklearn import preprocessing
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 

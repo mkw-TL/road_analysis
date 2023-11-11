@@ -1,12 +1,14 @@
+# Author: Joe Harrison
+# Date: Nov 11, 2023
+# License: MIT
+# NOTE: DearPyGui is not officially supported on Windows 11
+
 import dearpygui.dearpygui as dpg
 import webbrowser
 
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QApplication
 
-# if on linux, you may need to sudo apt-get install python3-tk
-# if on mac, you may need to brew install python-tk
-from tkinter import filedialog
 import capstone_roads  # our python file. Should be in the same working directory as this python script
 import matplotlib.pyplot as plt
 import geopandas as gpd
@@ -28,6 +30,7 @@ def main():
         gpd_files = gpd.GeoSeries(shape_files, crs=4326)
         print(gpd_files)
         gpd_files.plot()
+        # TODO: change color based on cols_list
 
         plt.savefig(
             "road_clustering.png", bbox_inches="tight"
@@ -158,19 +161,6 @@ def main():
         dpg.show_viewport()
         dpg.start_dearpygui()
         dpg.destroy_context()
-
-        # with dpg.theme() as item_theme:
-        #     with dpg.theme_component(dpg.mvAll):
-        #         dpg.add_theme_color(
-        #             dpg.mvThemeCol_FrameBg,
-        #             (200, 200, 100),
-        #             category=dpg.mvThemeCat_Core,
-        #         )
-        #         dpg.add_theme_style(
-        #             dpg.mvStyleVar_FrameRounding, 0, category=dpg.mvThemeCat_Core
-        #         )
-
-        # dpg.bind_item_theme(zip, item_theme)
 
 
 if __name__ == "__main__":
