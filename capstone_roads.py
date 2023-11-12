@@ -28,7 +28,7 @@ plt.switch_backend("Agg")  # so no issues with GUI backend
 import seaborn as sns
 
 sns.set_style("darkgrid", {"axes.facecolor": ".9"})
-sns.set(rc={"figure.figsize": (10, 8)})
+sns.set(rc={"figure.figsize": (8, 6)})
 
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -36,6 +36,7 @@ from sklearn.decomposition import PCA
 
 import matplotlib.colors as mcolors
 import os
+from numpy import abs, min, subtract
 
 
 def get_neighbors_and_update(this_dict, this_name, this_line, tree, data):
@@ -56,7 +57,7 @@ def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
     this_dict = {
         "road_name": "",
         "connections_names": [],
-        "is_named": True,
+        "is_named": 1,
         "self_connections": 0,
         "number_of_connector_roads": 0,
         "length": 0,
@@ -68,7 +69,7 @@ def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
     if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
         this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
     ):
-        this_dict["is_named"] = False
+        this_dict["is_named"] = 0.75  # arbitrary value for false
 
     if this_name not in set_of_looked_at_roads:
         # ignore it if the road has been looked at
@@ -187,10 +188,6 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
         centr_list = list(centr.values())
         pge_rnk = nx.pagerank(G3)
         pge_rnk_list = list(pge_rnk.values())
-        # ic("barycenter is", str(nx.barycenter(G3))[:depth])
-        # too slow
-        # ic("information centrality is", str(nx.information_centrality(G3))[:depth])
-        # also too slow
         print(
             "the difference between roads before and after cleaning is",
             str(G.number_of_nodes()),
@@ -210,25 +207,17 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
 
     return list_of_connected_dicts, connected_sfs
 
-    # classify(list_of_connected_dicts, k=6)
-
-    # from denseclus import DenseClus
-
-    # clf = DenseClus(
-    #     cluster_selection_method="leaf",
-    #     umap_combine_method="intersection_union_mapper",
-    # )
-
 
 def show_results(list_of_connected_dicts):
     ic("this might take some time")
     df = pd.DataFrame(list_of_connected_dicts)
     # takes a while to put back into queriable format
     df = df.drop(columns=["road_name", "connections_names"])
-    df["is_named"] = df["is_named"].astype(int)  # kmeans requires all to be numeric
     pd.set_option("display.max_columns", None)
 
-    print(df.head())
+    for col in df.columns:
+        df[col] = df[col] / max(df[col])
+    # normalize
 
     pd.reset_option("all")
 
@@ -239,10 +228,50 @@ def show_results(list_of_connected_dicts):
 
     pca = PCA(n_components=2)
     reduced_data = pca.fit_transform(df)
-    print(pca.explained_variance_ratio_)
+    print(
+        "our variance explained by the first two principle components are:",
+        pca.explained_variance_ratio_,
+    )
 
     tabl_cols = list(mcolors.TABLEAU_COLORS.values())
     cols = [tabl_cols[int(val)] for val in kmeans.labels_]
+
+    # https://stackoverflow.com/questions/39216897/plot-pca-loadings-and-loading-in-biplot-in-sklearn-like-rs-autoplot
+    # from Qiyun Zhu
+
+    # coordinates of features (i.e., loadings; note the transpose)
+    loadings = pca.components_[:2].T
+
+    # proportions of variance explained by axes
+    pvars = pca.explained_variance_ratio_[:2] * 100
+
+    arrows = loadings * abs(reduced_data).max(axis=0)
+
+    # empirical formula to determine arrow width
+    width = -0.0075 * min([subtract(*plt.xlim()), subtract(*plt.ylim())])
+
+    # features as arrows
+    for i, arrow in enumerate(arrows):
+        plt.arrow(
+            0,
+            0,
+            *arrow,
+            color="k",
+            alpha=0.5,
+            width=width,
+            ec="none",
+            length_includes_head=True,
+        )
+        plt.text(*(arrow * 1.05), df.columns[i], ha="center", va="center")
+
+    # axis labels
+    for i, axis in enumerate("xy"):
+        getattr(plt, f"{axis}ticks")([])
+        getattr(plt, f"{axis}label")(f"PC{i + 1} ({pvars[i]:.2f}%)")
+
+    plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=cols)
+    plt.savefig("pca_w_loadings", bbox_inches="tight")
+    plt.close()
 
     # Put the result into a color plot (saved as png, not interactive)
     fig, ax = plt.subplots()
@@ -320,43 +349,6 @@ def main(filepath):
     list_of_connected_dicts, _ = graph_analysis(list_of_dicts, start_time, shape_files)
 
     show_results(list_of_connected_dicts)
-
-    #######
-
-    # way too slow -- was going to deal with mixed data
-    # clf.fit(df)
-
-    # for i in range(clf.n_components):
-    #     sns.kdeplot(clf.mapper_.embedding_[:, i], shade=True)
-
-    # _ = sns.jointplot(
-    #     x=clf.mapper_.embedding_[:, 0], y=clf.mapper_.embedding_[:, -1], kind="kde"
-    # )
-
-    # labels = clf.score()
-
-    # print(labels, "\n")
-    # print(pd.DataFrame(labels).value_counts(normalize=True))
-
-    # _ = sns.jointplot(
-    #     x=clf.mapper_.embedding_[:, 0],
-    #     y=clf.mapper_.embedding_[:, 1],
-    #     hue=labels,
-    #     kind="kde",
-    # )
-
-    # _ = clf.hdbscan_.condensed_tree_.plot(
-    #     select_clusters=True,
-    #     selection_palette=sns.color_palette("deep", np.unique(labels).shape[0]),
-    # )
-
-    # df["segment"] = clf.score()
-
-    # numerics = (
-    #     df.select_dtypes(include=[int, float]).drop(["segment"], 1).columns.tolist()
-    # )
-
-    # df[numerics + ["segment"]].groupby(["segment"]).median()
 
 
 if __name__ == "__main__":
