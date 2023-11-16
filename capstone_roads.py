@@ -40,16 +40,17 @@ from numpy import abs, min, subtract
 
 
 def get_neighbors_and_update(this_dict, this_name, this_line, tree, data):
-    nearest, dist = tree.query_nearest(this_line, return_distance=True)
+    nearest, dist = tree.query_nearest(
+        this_line, return_distance=True, max_distance=0.001
+    )
     if dist[0] == 0:
         for _, id in enumerate(nearest):
             # nearest from .query_nearest gives the ids, not the names
             if data["FULLNAME"][id] == this_name:
                 this_dict["self_connections"] += 1
             # append all connected roads that are not this road
-            else:
-                this_dict["connections_names"].append(data["FULLNAME"][id])
-                this_dict["number_of_connector_roads"] += 1
+            this_dict["connections_names"].append(data["FULLNAME"][id])
+            this_dict["number_of_connector_roads"] += 1
     return this_dict
 
 
@@ -69,7 +70,7 @@ def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
     if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
         this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
     ):
-        this_dict["is_named"] = 0.75  # arbitrary value for false
+        this_dict["is_named"] = 0.7  # arbitrary value for false
 
     if this_name not in set_of_looked_at_roads:
         # ignore it if the road has been looked at
@@ -91,8 +92,9 @@ def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
                 orig_ind = ind
                 break
         this_dict = list_of_dicts[orig_ind]
-        this_dict["number_of_parts"] += 1
+
         this_dict["length"] += shapely.length(this_line)
+        this_dict["number_of_parts"] += 1
         this_dict = get_neighbors_and_update(
             this_dict, this_name, this_line, tree, data
         )
@@ -104,7 +106,6 @@ def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_ro
     i = 0
     while True:
         try:
-            i = i + 1
             print(
                 next(
                     create_data_for_road(
@@ -114,8 +115,9 @@ def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_ro
                 end=" ",
             )
             print("/", str(num_roads))
+            i = i + 1
         except:
-            return list_of_dicts
+            return list_of_dicts, set_of_looked_at_roads
 
 
 def graph_analysis(list_of_dicts, start_time, shape_files):
@@ -125,6 +127,7 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
     # Add nodes (roads) to the graph
     for road_data in list_of_dicts:
         # some roads don't have a road_name field?? Not sure how that happens..
+        # OH Thats what's causing our failed import
         if "road_name" in road_data:
             G.add_node(road_data["road_name"], data=road_data)
 
@@ -138,6 +141,7 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
                 G.add_edge(road_name, connection)
 
     ic("Time is", timeit.default_timer() - start_time)
+    ic("Number of roads in G is", len(G))
 
     depth = 400
     if nx.is_connected(G):
@@ -153,12 +157,11 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
     else:
         ic("not connected. Analysis on largest connected subset below")
         list_of_connected_dicts = []
-        list_of_unconnected_dicts = []
         orig_idxs = []
         G3 = nx.Graph()
 
         G2 = copy.deepcopy(G)
-        # MAN this sucks. It looks like copy was depreciated as an argument to max() or connected_components
+        # It looks like copy was depreciated as an argument to max() or connected_components
         # And since connected_components removes attribute labels, we need to keep these labels floating around.
         G2 = max(nx.connected_components(G2), key=len)
         # G2 gives a list of road names that are connected
@@ -170,8 +173,6 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
                     list_of_connected_dicts.append(this_road)
                     orig_idxs.append(i)
                     G3.add_node(this_road["road_name"], data=this_road)
-                else:
-                    list_of_unconnected_dicts.append(this_road)
 
         for i, conn_road in enumerate(list_of_connected_dicts):
             # loop through again because edges have to come after nodes
@@ -182,21 +183,16 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
                     G3.add_edge(road_name, connection)
         ic("number of nodes is", str(G3.number_of_nodes()))
         ic("number of edges is", str(G3.number_of_edges()))
-        ic("degree centrality is", str(nx.degree_centrality(G3))[:depth])
-        ic("pagerank is", str(nx.pagerank(G3))[:depth])
         centr = nx.degree_centrality(G3)
         centr_list = list(centr.values())
         pge_rnk = nx.pagerank(G3)
         pge_rnk_list = list(pge_rnk.values())
-        print(
+        ic(
             "the difference between roads before and after cleaning is",
             str(G.number_of_nodes()),
             "to",
             str(G3.number_of_nodes()),
         )
-
-    # need to now collect the information back out of G into something in order to classify
-    # only currently works for G3.
 
     connected_sfs = []
 
@@ -288,6 +284,17 @@ def show_results(list_of_connected_dicts):
     return cols
 
 
+def plot(shape_files):
+    gpd_files = gpd.GeoSeries(shape_files)  # passed in shape_files
+    fig, ax = plt.subplots()
+    gpd_files.plot(ax=ax)
+
+    plt.savefig(
+        "orig_roads.png", bbox_inches="tight"
+    )  # puts it in the working directory
+    plt.close()
+
+
 def setup(filepath):
     start_time = timeit.default_timer()
 
@@ -306,6 +313,8 @@ def setup(filepath):
 
     num_roads = len(data["geometry"])
     shape_files = data["geometry"]
+
+    plot(shape_files)
 
     for j in range(num_roads):
         if str(data["FULLNAME"][j]) == "nan":
@@ -329,6 +338,14 @@ def setup(filepath):
     )
 
 
+def validate(data, set_of_looked_at_roads):
+    for i in range(len(data)):
+        if data["FULLNAME"][i] in set_of_looked_at_roads:
+            pass
+        else:
+            ic("Our i is", i, "and our road_name is", data["FULLNAME"][i])
+
+
 def main(filepath):
     (
         start_time,
@@ -342,14 +359,18 @@ def main(filepath):
 
     # in the old formulation, this would give us the progress bar
     # for i in tqdm(range(size)):
-    list_of_dicts = loop_through_roads(
+    list_of_dicts, set_of_looked_at_roads = loop_through_roads(
         set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
     )
 
-    list_of_connected_dicts, _ = graph_analysis(list_of_dicts, start_time, shape_files)
+    list_of_connected_dicts, shape_files_connected = graph_analysis(
+        list_of_dicts, start_time, shape_files
+    )
 
     show_results(list_of_connected_dicts)
 
+    validate(data, set_of_looked_at_roads)
+
 
 if __name__ == "__main__":
-    main(filepath="~/Downloads/tl_rd22_51001_roads.zip")
+    main(filepath="tl_2022_51678_roads.zip")

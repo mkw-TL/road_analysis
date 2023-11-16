@@ -125,6 +125,9 @@ def main():
         webbrowser.open_new(
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
         )
+        # os.sleep(10)
+        # webbrowser close doesn't exist LOL
+        # TODO Auto close webbrowser
 
     def city_finder():
         webbrowser.open_new(
@@ -143,17 +146,22 @@ def main():
                 dpg.mvStyleVar_ScrollbarSize, 4, category=dpg.mvThemeCat_Core
             )
 
-    with dpg.window(label="Chose Road Network to Analyze", width=600, height=400):
-        text1 = dpg.add_text("Select the City / County to download your roads from")
-        button1 = dpg.add_button(label="Download Roads to Analyze", callback=download)
+    with dpg.window(label="Chose Road Network to Analyze", width=500, height=300):
+        text0 = dpg.add_text(
+            "Note: If you don't find your city below, download by county"
+        )
         button2 = dpg.add_button(
-            label="If you don't find your city / town, click here to find the county (then download from above)",
+            label="Find County",
             callback=city_finder,
         )
-        text2 = dpg.add_text("...once files are downloaded")
-        zip = dpg.add_button(
-            label="Link to .zip Folder of Roads or .shp file", callback=get_user_link
+        dpg.add_text("")
+        text1 = dpg.add_text(
+            ">> Select the City / County to download your roads from. Choose from 'All Roads'"
         )
+        button1 = dpg.add_button(label="Download Roads", callback=download)
+        dpg.add_text("")
+        text2 = dpg.add_text("...once files are downloaded")
+        zip = dpg.add_button(label="Locate File", callback=get_user_link)
         dpg.add_text("")
 
         fp = dpg.add_text(label="file_path", default_value="no path defined yet")
