@@ -19,6 +19,8 @@ import networkx as nx
 import time
 import copy
 
+from operator import itemgetter
+
 # pip install Amazon-DenseClus
 
 import matplotlib.pyplot as plt
@@ -70,7 +72,7 @@ def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
     if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
         this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
     ):
-        this_dict["is_named"] = 0.7  # arbitrary value for false
+        this_dict["is_named"] = 0.9  # arbitrary value for false
 
     if this_name not in set_of_looked_at_roads:
         # ignore it if the road has been looked at
@@ -208,29 +210,36 @@ def show_results(list_of_connected_dicts):
     ic("this might take some time")
     df = pd.DataFrame(list_of_connected_dicts)
     # takes a while to put back into queriable format
-    df = df.drop(columns=["road_name", "connections_names"])
+    df = df.drop(columns=["road_name", "connections_names", "is_named"])
     pd.set_option("display.max_columns", None)
 
-    for col in df.columns:
-        df[col] = df[col] / max(df[col])
-    # normalize
+    new_df = df.copy()
 
-    pd.reset_option("all")
+    for i, col in enumerate(df.columns):
+        new_df[col] = df[col] / df[col].max()
+        # normalize. Make sure not all vals are the same. If two values then they will be as far apart as possible
 
-    # TODO: see results from projecting first.
     kmeans = KMeans(n_clusters=6)
-    kmeans.fit(df)
-    # kmeans first and then pca later
+    kmeans.fit(new_df)
+    ic(kmeans.cluster_centers_)
+    orig_dimen_centers = [
+        kmeans.cluster_centers_[i] * df[col].max() for i, col in enumerate(df.columns)
+    ]
+    # kmeans first and then pca later -- provides the most seperation
 
     pca = PCA(n_components=2)
-    reduced_data = pca.fit_transform(df)
+    reduced_data = pca.fit_transform(new_df)
     print(
         "our variance explained by the first two principle components are:",
         pca.explained_variance_ratio_,
     )
 
+    transformed_center = pca.transform(kmeans.cluster_centers_)
+
     tabl_cols = list(mcolors.TABLEAU_COLORS.values())
     cols = [tabl_cols[int(val)] for val in kmeans.labels_]
+
+    k_cols = [tabl_cols[i] for i in range(6)]
 
     # https://stackoverflow.com/questions/39216897/plot-pca-loadings-and-loading-in-biplot-in-sklearn-like-rs-autoplot
     # from Qiyun Zhu
@@ -260,18 +269,35 @@ def show_results(list_of_connected_dicts):
         )
         plt.text(*(arrow * 1.05), df.columns[i], ha="center", va="center")
 
+    centers = pd.DataFrame(transformed_center)
+    ic(centers)
+
     # axis labels
     for i, axis in enumerate("xy"):
         getattr(plt, f"{axis}ticks")([])
         getattr(plt, f"{axis}label")(f"PC{i + 1} ({pvars[i]:.2f}%)")
 
     plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=cols)
+    plt.scatter(centers.iloc[:, 0], centers.iloc[:, 1], c=k_cols, s=300)
+
+    for k in range(6):
+        new_str = ""
+        for val in range(6):
+            str_seg = float(orig_dimen_centers[val][k])
+            new_str += f"{str_seg:.2f}, "
+        plt.text(
+            centers.iloc[k, 0],
+            centers.iloc[k, 1],
+            s=new_str,
+            horizontalalignment="center",
+        )
     plt.savefig("pca_w_loadings", bbox_inches="tight")
     plt.close()
 
     # Put the result into a color plot (saved as png, not interactive)
     fig, ax = plt.subplots()
     ax.scatter(reduced_data[:, 0], reduced_data[:, 1], c=cols)
+    ax.scatter(centers.iloc[:, 0], centers.iloc[:, 1], c=k_cols, s=300)
     ax.set_title("K-means clustering on the roads (projected via PCA)")
     ax.set_xticks(())
     ax.set_yticks(())

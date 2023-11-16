@@ -146,7 +146,7 @@ def main():
                 dpg.mvStyleVar_ScrollbarSize, 4, category=dpg.mvThemeCat_Core
             )
 
-    with dpg.window(label="Chose Road Network to Analyze", width=500, height=300):
+    with dpg.window(label="Chose Road Network to Analyze", width=550, height=350):
         text0 = dpg.add_text(
             "Note: If you don't find your city below, download by county"
         )
