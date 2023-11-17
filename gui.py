@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import pandas as pd
 from icecream import ic
+import time
 
 plt.switch_backend("Agg")  # so no issues with GUI backend
 import seaborn as sns
@@ -37,13 +38,18 @@ def main():
         # ic(new_df.shape)
 
         plt.savefig(
-            "road_clustering.png", bbox_inches="tight"
+            "road_clustering_2.png", bbox_inches="tight"
         )  # puts it in the working directory
         plt.close()
 
-        width1, height1, channels, data2 = dpg.load_image("road_clustering.png")
-        width2, height2, channels, data_loadings = dpg.load_image("pca_w_loadings.png")
-        width3, height3, channels, data = dpg.load_image("road_pca.png")
+        # needs time to savefig first
+        time.sleep(0.03)
+
+        width1, height1, channels, data2 = dpg.load_image("road_clustering_2.png")
+        width2, height2, channels, data_loadings = dpg.load_image(
+            "pca_w_loadings_2.png"
+        )
+        width3, height3, channels, data = dpg.load_image("road_pca_2.png")
 
         with dpg.texture_registry(show=False):
             dpg.add_static_texture(

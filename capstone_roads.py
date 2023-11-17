@@ -109,7 +109,7 @@ def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
 
 def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_roads):
     i = 0
-    while True:
+    while True and i % 100 == 0:
         try:
             print(
                 next(
@@ -307,7 +307,7 @@ def show_results(list_of_connected_dicts):
     #     )
 
     # center with label ^
-    plt.savefig("pca_w_loadings", bbox_inches="tight")
+    plt.savefig("pca_w_loadings_2.png", bbox_inches="tight")
     plt.close()
 
     # Put the result into a color plot (saved as png, not interactive)
@@ -320,7 +320,7 @@ def show_results(list_of_connected_dicts):
     ax.set_yticks(())
     ax.plot()
     plt.savefig(
-        "road_pca.png", bbox_inches="tight"
+        "road_pca_2.png", bbox_inches="tight"
     )  # puts it in the working directory -- where this app is located and executed from
     plt.close(fig)
 
@@ -333,7 +333,7 @@ def plot(shape_files):
     gpd_files.plot(ax=ax)
 
     plt.savefig(
-        "orig_roads.png", bbox_inches="tight"
+        "orig_roads_2.png", bbox_inches="tight"
     )  # puts it in the working directory
     plt.close()
 
@@ -350,7 +350,7 @@ def setup(filepath):
 
     data = gpd.read_file(filepath)
     try:
-        os.remove("road_pca.png")  # removes any existing PCA visualization
+        os.remove("road_pca_2.png")  # removes any existing PCA visualization
     except:
         pass
 
