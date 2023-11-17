@@ -6,7 +6,9 @@
 import geopandas as gpd
 import shapely
 import pandas as pd
+import numpy as np
 import timeit
+import math
 
 # pip install icecream
 from icecream import ic
@@ -51,7 +53,8 @@ def get_neighbors_and_update(this_dict, this_name, this_line, tree, data):
             if data["FULLNAME"][id] == this_name:
                 this_dict["self_connections"] += 1
             # append all connected roads that are not this road
-            this_dict["connections_names"].append(data["FULLNAME"][id])
+            if data["FULLNAME"][id] not in this_dict["connections_names"]:
+                this_dict["connections_names"].append(data["FULLNAME"][id])
             this_dict["number_of_connector_roads"] += 1
     return this_dict
 
@@ -212,23 +215,26 @@ def show_results(list_of_connected_dicts):
     # takes a while to put back into queriable format
     df = df.drop(columns=["road_name", "connections_names", "is_named"])
     pd.set_option("display.max_columns", None)
+    ic(df.columns)
 
-    new_df = df.copy()
+    transformed_df = df.copy()
+    eps = 0.000001
 
     for i, col in enumerate(df.columns):
-        new_df[col] = df[col] / df[col].max()
+        transformed_df[col] = df[col] / df[col].max()
+        transformed_df[col] = np.log(transformed_df[col] + eps)
         # normalize. Make sure not all vals are the same. If two values then they will be as far apart as possible
+        # log scale, 0 undefined
 
     kmeans = KMeans(n_clusters=6)
-    kmeans.fit(new_df)
-    ic(kmeans.cluster_centers_)
+    kmeans.fit(transformed_df)
     orig_dimen_centers = [
         kmeans.cluster_centers_[i] * df[col].max() for i, col in enumerate(df.columns)
     ]
     # kmeans first and then pca later -- provides the most seperation
 
     pca = PCA(n_components=2)
-    reduced_data = pca.fit_transform(new_df)
+    reduced_data = pca.fit_transform(transformed_df)
     print(
         "our variance explained by the first two principle components are:",
         pca.explained_variance_ratio_,
@@ -236,7 +242,7 @@ def show_results(list_of_connected_dicts):
 
     transformed_center = pca.transform(kmeans.cluster_centers_)
 
-    tabl_cols = list(mcolors.TABLEAU_COLORS.values())
+    tabl_cols = list(mcolors.BASE_COLORS.values())
     cols = [tabl_cols[int(val)] for val in kmeans.labels_]
 
     k_cols = [tabl_cols[i] for i in range(6)]
@@ -255,6 +261,15 @@ def show_results(list_of_connected_dicts):
     # empirical formula to determine arrow width
     width = -0.0075 * min([subtract(*plt.xlim()), subtract(*plt.ylim())])
 
+    col_names = [
+        "Connections to Self",
+        "Num of Connections",
+        "Length",
+        "Segments",
+        "Centrality",
+        "Page Rank",
+    ]
+
     # features as arrows
     for i, arrow in enumerate(arrows):
         plt.arrow(
@@ -262,42 +277,44 @@ def show_results(list_of_connected_dicts):
             0,
             *arrow,
             color="k",
-            alpha=0.5,
+            alpha=0.3,
             width=width,
             ec="none",
             length_includes_head=True,
         )
-        plt.text(*(arrow * 1.05), df.columns[i], ha="center", va="center")
+        plt.text(*(arrow * 1.1), col_names[i], ha="center", va="center", fontsize=14)
 
     centers = pd.DataFrame(transformed_center)
-    ic(centers)
 
     # axis labels
     for i, axis in enumerate("xy"):
         getattr(plt, f"{axis}ticks")([])
-        getattr(plt, f"{axis}label")(f"PC{i + 1} ({pvars[i]:.2f}%)")
+        getattr(plt, f"{axis}label")(f"Principle Component {i + 1} ({pvars[i]:.2f}%)")
 
     plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=cols)
-    plt.scatter(centers.iloc[:, 0], centers.iloc[:, 1], c=k_cols, s=300)
+    # plt.scatter(centers.iloc[:, 0], centers.iloc[:, 1], c=k_cols, s=300)
 
-    for k in range(6):
-        new_str = ""
-        for val in range(6):
-            str_seg = float(orig_dimen_centers[val][k])
-            new_str += f"{str_seg:.2f}, "
-        plt.text(
-            centers.iloc[k, 0],
-            centers.iloc[k, 1],
-            s=new_str,
-            horizontalalignment="center",
-        )
+    # for k in range(6):
+    #     new_str = ""
+    #     for val in range(6):
+    #         str_seg = float(orig_dimen_centers[val][k])
+    #         new_str += f"{str_seg:.2f}, "
+    #     plt.text(
+    #         centers.iloc[k, 0],
+    #         centers.iloc[k, 1],
+    #         s=new_str,
+    #         horizontalalignment="center",
+    #     )
+
+    # center with label ^
     plt.savefig("pca_w_loadings", bbox_inches="tight")
     plt.close()
 
     # Put the result into a color plot (saved as png, not interactive)
     fig, ax = plt.subplots()
     ax.scatter(reduced_data[:, 0], reduced_data[:, 1], c=cols)
-    ax.scatter(centers.iloc[:, 0], centers.iloc[:, 1], c=k_cols, s=300)
+    # ax.scatter(centers.iloc[:, 0], centers.iloc[:, 1], c=k_cols, s=300)
+    # center ^
     ax.set_title("K-means clustering on the roads (projected via PCA)")
     ax.set_xticks(())
     ax.set_yticks(())
@@ -339,8 +356,6 @@ def setup(filepath):
 
     num_roads = len(data["geometry"])
     shape_files = data["geometry"]
-
-    plot(shape_files)
 
     for j in range(num_roads):
         if str(data["FULLNAME"][j]) == "nan":
@@ -399,4 +414,4 @@ def main(filepath):
 
 
 if __name__ == "__main__":
-    main(filepath="tl_2022_51678_roads.zip")
+    main(filepath="tl_2022_06047_roads.zip")

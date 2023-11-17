@@ -12,6 +12,8 @@ from PyQt5.QtWidgets import QApplication
 import capstone_roads  # our python file. Should be in the same working directory as this python script
 import matplotlib.pyplot as plt
 import geopandas as gpd
+import pandas as pd
+from icecream import ic
 
 plt.switch_backend("Agg")  # so no issues with GUI backend
 import seaborn as sns
@@ -27,6 +29,12 @@ def main():
         gpd_files = gpd.GeoSeries(shape_files, crs=4326)  # passed in shape_files
         fig, ax = plt.subplots()
         gpd_files.plot(ax=ax, color=cols_list)
+
+        # df = pd.DataFrame(list_of_connected_dicts)
+        # new_df = df.loc[df["road_name"] == "Kendall Dr"]
+        # new_df = df.loc[df["road_name"] == "Sunset Dr"]
+        # print(new_df)
+        # ic(new_df.shape)
 
         plt.savefig(
             "road_clustering.png", bbox_inches="tight"
@@ -146,7 +154,7 @@ def main():
                 dpg.mvStyleVar_ScrollbarSize, 4, category=dpg.mvThemeCat_Core
             )
 
-    with dpg.window(label="Chose Road Network to Analyze", width=550, height=350):
+    with dpg.window(label="Chose Road Network to Analyze", width=600, height=350):
         text0 = dpg.add_text(
             "Note: If you don't find your city below, download by county"
         )
