@@ -247,6 +247,14 @@ def show_results(list_of_connected_dicts):
 
     k_cols = [tabl_cols[i] for i in range(6)]
 
+    # now combining results together
+    df["kmeans_result"] = kmeans.labels_
+
+    for j in range(6):
+        ic(df[df["kmeans_result"] == j].loc[:, "length"].mean())
+        ic(len(df[df["kmeans_result"] == j].loc[:, "length"]))
+        ic(df[df["kmeans_result"] == j].loc[:, "length"].median())
+
     # https://stackoverflow.com/questions/39216897/plot-pca-loadings-and-loading-in-biplot-in-sklearn-like-rs-autoplot
     # from Qiyun Zhu
 
