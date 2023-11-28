@@ -217,24 +217,24 @@ def show_results(list_of_connected_dicts):
     pd.set_option("display.max_columns", None)
     ic(df.columns)
 
-    transformed_df = df.copy()
+    normalized_df = df.copy()
     eps = 0.000001
 
     for i, col in enumerate(df.columns):
-        transformed_df[col] = df[col] / df[col].max()
-        transformed_df[col] = np.log(transformed_df[col] + eps)
+        normalized_df[col] = df[col] / df[col].max()
+        normalized_df[col] = np.log(normalized_df[col] + eps)
         # normalize. Make sure not all vals are the same. If two values then they will be as far apart as possible
         # log scale, 0 undefined
 
     kmeans = KMeans(n_clusters=6)
-    kmeans.fit(transformed_df)
+    kmeans.fit(normalized_df)
     orig_dimen_centers = [
         kmeans.cluster_centers_[i] * df[col].max() for i, col in enumerate(df.columns)
     ]
     # kmeans first and then pca later -- provides the most seperation
 
     pca = PCA(n_components=2)
-    reduced_data = pca.fit_transform(transformed_df)
+    reduced_data = pca.fit_transform(normalized_df)
     print(
         "our variance explained by the first two principle components are:",
         pca.explained_variance_ratio_,
