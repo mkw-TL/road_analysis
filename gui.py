@@ -16,6 +16,11 @@ import pandas as pd
 from icecream import ic
 import time
 
+from selenium import webdriver  # update requirements.txt
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from seleniumwire import webdriver  # needed to see GET requests
+
 plt.switch_backend("Agg")  # so no issues with GUI backend
 import seaborn as sns
 
@@ -136,12 +141,30 @@ def main():
         dpg.show_item(run_button)
 
     def download():
-        webbrowser.open_new(
+        driver = webdriver.Firefox()
+        driver.get(
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
         )
+        request = driver.wait_for_request(".zip")
+        assert len(request) != 0
+        print(request)
+        zip_label = request.split("2022_")[1]
+        zip_label = zip_label.split("_roads")[0]
+        associated_county = driver.find_element(By.ID, zip_label)
+        ic(associated_county)
+
+        associated_state = driver.find_element(
+            By.ID, zip_label[:2]
+        )  # select the first two numbers from the zip label for the state
+        ic(associated_state)
+
+        driver.close()
+
+        # webbrowser.open_new(
+        #     "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
+        # )
         # os.sleep(10)
-        # webbrowser close doesn't exist LOL
-        # TODO Auto close webbrowser
+        # webbrowser close doesn't exist for webbrowser
 
     def city_finder():
         webbrowser.open_new(
