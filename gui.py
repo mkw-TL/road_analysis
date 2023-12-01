@@ -198,7 +198,7 @@ def main():
             ">> Select the City / County to download your roads from. Choose from 'All Roads'"
         )
         button1 = dpg.add_button(label="Download Roads", callback=download)
-        downloaded = dpg.add_button("download_indicator")
+        downloaded = dpg.add_text("Your file has been downloaded!")
         dpg.hide_item(downloaded)
         dpg.add_text("")
         text2 = dpg.add_text("...once files are downloaded")
