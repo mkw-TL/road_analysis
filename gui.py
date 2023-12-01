@@ -145,26 +145,28 @@ def main():
         driver.get(
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
         )
-        request = driver.wait_for_request(".zip")
-        assert len(request) != 0
-        print(request)
+        request = driver.wait_for_request(".zip", 60)
+        request = str(request)
         zip_label = request.split("2022_")[1]
         zip_label = zip_label.split("_roads")[0]
-        associated_county = driver.find_element(By.ID, zip_label)
-        ic(associated_county)
+        print("zip label is", zip_label)
+        driver.implicitly_wait(1)
+        element = driver.find_elements(By.TAG_NAME, "option")
+        associated_county = "na"
+        for e in element:
+            if str(e.get_attribute("value")) == zip_label:
+                associated_county = e.text
+            if str(e.get_attribute("value")) == zip_label[:2]:
+                associated_state = e.text
 
-        associated_state = driver.find_element(
-            By.ID, zip_label[:2]
-        )  # select the first two numbers from the zip label for the state
+        ic(associated_county)
         ic(associated_state)
 
         driver.close()
 
-        # webbrowser.open_new(
-        #     "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
-        # )
-        # os.sleep(10)
-        # webbrowser close doesn't exist for webbrowser
+        time.sleep(0.2)
+
+        dpg.show_item(downloaded)
 
     def city_finder():
         webbrowser.open_new(
@@ -196,6 +198,8 @@ def main():
             ">> Select the City / County to download your roads from. Choose from 'All Roads'"
         )
         button1 = dpg.add_button(label="Download Roads", callback=download)
+        downloaded = dpg.add_button("download_indicator")
+        dpg.hide_item(downloaded)
         dpg.add_text("")
         text2 = dpg.add_text("...once files are downloaded")
         zip = dpg.add_button(label="Locate File", callback=get_user_link)
