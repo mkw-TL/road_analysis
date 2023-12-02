@@ -294,6 +294,3 @@ def added_road_cost(miles):
 def rubber_polution(miles):
     rubber = 0.00032 * miles
     return(rubber)
-
-
-get_vmt_county('Loudoun County', 'Virginia')
