@@ -23,6 +23,7 @@ from seleniumwire import webdriver  # needed to see GET requests
 
 plt.switch_backend("Agg")  # so no issues with GUI backend
 import seaborn as sns
+import project
 
 sns.set_style("darkgrid", {"axes.facecolor": ".9"})
 sns.set(rc={"figure.figsize": (8, 6)})
@@ -31,7 +32,13 @@ sns.set(rc={"figure.figsize": (8, 6)})
 def main():
     dpg.create_context()
 
-    def visualize(list_of_connected_dicts, shape_files, cols_list):
+    def visualize(list_of_connected_dicts, shape_files, cols_list, county, state):
+        project.get_vmt_county(county, state)
+
+        time.sleep(0.02)
+
+        dpg.hide_item(slow_warning)
+
         gpd_files = gpd.GeoSeries(shape_files, crs=4326)  # passed in shape_files
         fig, ax = plt.subplots()
         gpd_files.plot(ax=ax, color=cols_list)
@@ -48,13 +55,14 @@ def main():
         plt.close()
 
         # needs time to savefig first
-        time.sleep(0.03)
+        time.sleep(0.02)
 
         width1, height1, channels, data2 = dpg.load_image("road_clustering_2.png")
         width2, height2, channels, data_loadings = dpg.load_image(
             "pca_w_loadings_2.png"
         )
-        width3, height3, channels, data = dpg.load_image("road_pca_2.png")
+        width3, height3, channels, AV_pred_dat = dpg.load_image("AV_pred.png")
+        # width3, height3, channels, data = dpg.load_image("road_pca_2.png")
 
         with dpg.texture_registry(show=False):
             dpg.add_static_texture(
@@ -70,18 +78,29 @@ def main():
                 default_value=data_loadings,
                 tag="pca_w_loadings",
             )
+
         with dpg.texture_registry(show=False):
             dpg.add_static_texture(
-                width=width3, height=height3, default_value=data, tag="road_pca"
+                width=width3,
+                height=height3,
+                default_value=AV_pred_dat,
+                tag="AV_pred",
             )
+        # with dpg.texture_registry(show=False):
+        #     dpg.add_static_texture(
+        #         width=width3, height=height3, default_value=data, tag="road_pca"
+        #     )
 
         with dpg.window(label="Clustering Results"):
             dpg.add_image("road_clustering")
             dpg.add_image("pca_w_loadings")
-            dpg.add_image("road_pca")
+            dpg.add_image("AV_pred")
+            # dpg.add_image("road_pca")
 
     def run_script():
         filepath = dpg.get_value(fp)
+        county = dpg.get_item_user_data(button1)[0]
+        state = dpg.get_item_user_data(button1)[1]
         print("our filepath is", filepath)
         dpg.hide_item(run_button)
         dpg.show_item(slow_warning)
@@ -123,12 +142,14 @@ def main():
         )
 
         cols_list = capstone_roads.show_results(list_of_connected_dicts)
-        dpg.hide_item(slow_warning)
         dpg.hide_item(text1)
         dpg.hide_item(button1)
         dpg.hide_item(button2)
         dpg.hide_item(text2)
-        visualize(list_of_connected_dicts, shape_files, cols_list)
+        dpg.hide_item(zip)
+        dpg.hide_item(text0)
+        dpg.show_item(viz)
+        visualize(list_of_connected_dicts, shape_files, cols_list, county, state)
 
     def get_user_link():
         app = QApplication([])  # Create a QApplication instance if not already created
@@ -140,7 +161,7 @@ def main():
         dpg.set_value(fp, dir)
         dpg.show_item(run_button)
 
-    def download():
+    def download(sender, data, user_data):
         driver = webdriver.Firefox()
         driver.get(
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
@@ -159,14 +180,16 @@ def main():
             if str(e.get_attribute("value")) == zip_label[:2]:
                 associated_state = e.text
 
-        ic(associated_county)
-        ic(associated_state)
-
         driver.close()
 
         time.sleep(0.2)
 
         dpg.show_item(downloaded)
+
+        ic(associated_county)
+        ic(associated_state)
+
+        dpg.set_item_user_data(sender, [associated_county, associated_state])
 
     def city_finder():
         webbrowser.open_new(
@@ -186,16 +209,14 @@ def main():
             )
 
     with dpg.window(label="Chose Road Network to Analyze", width=600, height=350):
-        text0 = dpg.add_text(
-            "Note: If you don't find your city below, download by county"
-        )
+        text0 = dpg.add_text("Only works County-wide")
         button2 = dpg.add_button(
             label="Find County",
             callback=city_finder,
         )
         dpg.add_text("")
         text1 = dpg.add_text(
-            ">> Select the City / County to download your roads from. Choose from 'All Roads'"
+            ">> Select the County to download your roads from. Choose from 'All Roads'"
         )
         button1 = dpg.add_button(label="Download Roads", callback=download)
         downloaded = dpg.add_text("Your file has been downloaded!")
@@ -219,6 +240,8 @@ def main():
         dpg.hide_item(slow_warning)
 
         viewer = dpg.add_text(label="Text", tag="viewer")
+        viz = dpg.add_text("Visualizing...")
+        dpg.hide_item(viz)
         # dpg.hide_item(viewer)
 
     dpg.bind_theme(global_theme)
