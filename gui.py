@@ -24,6 +24,7 @@ from seleniumwire import webdriver  # needed to see GET requests
 plt.switch_backend("Agg")  # so no issues with GUI backend
 import seaborn as sns
 import project
+import os
 
 sns.set_style("darkgrid", {"axes.facecolor": ".9"})
 sns.set(rc={"figure.figsize": (8, 6)})
@@ -81,7 +82,7 @@ def main():
             # dpg.add_image("road_pca")
 
     def run_script():
-        filepath = dpg.get_value(fp)
+        filepath = dpg.get_value(file_dialog)
         county = dpg.get_item_user_data(button1)[0]
         state = dpg.get_item_user_data(button1)[1]
         print("our filepath is", filepath)
@@ -128,39 +129,13 @@ def main():
         dpg.hide_item(text1)
         dpg.hide_item(button1)
         dpg.hide_item(button2)
-        dpg.hide_item(zip)
+        # dpg.hide_item(zip)
         dpg.hide_item(text0)
         dpg.show_item(viz)
         visualize(list_of_connected_dicts, shape_files, cols_list, county, state)
 
-    def callback(sender, app_data):
-        print("OK was clicked.")
-        print("Sender: ", sender)
-        print("App Data: ", app_data)
-
-    def cancel_callback(sender, app_data):
-        print("Cancel was clicked.")
-        print("Sender: ", sender)
-        print("App Data: ", app_data)
-
     def get_user_link():
-        with dpg.add_file_dialog(
-            directory_selector=True,
-            show=False,
-            callback=callback,
-            tag="file_dialog_id",
-            cancel_callback=cancel_callback,
-            width=700,
-            height=400,
-        ):
-            dpg.add_file_extension(".zip")
-
-        with dpg.window(label="Tutorial", width=800, height=300):
-            dpg.add_button(
-                label="Directory Selector",
-                callback=lambda: dpg.show_item("file_dialog_id"),
-            )
-
+        pass  # not using this approah currently because of threading issues
         # app = QApplication([])  # Create a QApplication instance if not already created
         # directory = QFileDialog.getOpenFileName(
         #     None, "Select Directory", "", "Zip Files (*.zip);;SHP Files (*.shp)"
@@ -171,6 +146,21 @@ def main():
         # dpg.hide_item(zip)
         # dpg.show_item(run_button)
         # app.quit()
+
+    def check():
+        if (
+            os.path.exists(dpg.get_value(file_dialog))
+            and len(dpg.get_value(file_dialog)) > 4
+        ):
+            if dpg.get_value(file_dialog)[-4:] == ".zip":
+                dpg.set_value(fp, "File found")
+                dpg.show_item(run_button)
+            else:
+                dpg.set_value(fp, "File not found")
+                dpg.hide_item(run_button)
+        else:
+            dpg.set_value(fp, "File not found")
+            dpg.hide_item(run_button)
 
     def download(sender, data, user_data):
         dpg.show_item(text1_5)
@@ -205,8 +195,9 @@ def main():
         dpg.hide_item(spacing)
 
         dpg.show_item(downloaded)
-        dpg.show_item(zip)
+        # dpg.show_item(zip)
         dpg.show_item(fp)
+        dpg.show_item(file_dialog)
 
         ic(associated_county)
         ic(associated_state)
@@ -243,26 +234,26 @@ def main():
             ">> Select the County to download your roads from. Choose from 'All Roads'"
         )
         button1 = dpg.add_button(label="Download Roads", callback=download)
-        text1_5 = dpg.add_text("Loading")
-        dpg.hide_item(text1_5)
-        downloaded = dpg.add_text("Your file has been downloaded!")
-        dpg.hide_item(downloaded)
+        text1_5 = dpg.add_text("Loading", show=False)
+        downloaded = dpg.add_text("Your file has been downloaded!", show=False)
         dpg.add_text("")
-        zip = dpg.add_button(label="Locate File", callback=get_user_link)
-        dpg.hide_item(zip)
-        fp = dpg.add_text(label="file_path", default_value="no path defined yet")
-        dpg.hide_item(fp)
+        # zip = dpg.add_button(label="Locate File", callback=get_user_link, show=False)
+        fp = dpg.add_text(show=False)
+
+        file_dialog = dpg.add_input_text(
+            default_value="Path/To/File", callback=check, show=False
+        )
 
         run_button = dpg.add_button(
-            label="Run", callback=run_script, user_data=dpg.get_value(fp)
+            label="Run",
+            callback=run_script,
+            user_data=dpg.get_value(file_dialog),
+            show=False,
         )
-        dpg.hide_item(run_button)  # only show once the user puts in the zip file
 
-        progress_bar = dpg.add_progress_bar(label="progress")
-        dpg.hide_item(progress_bar)
+        progress_bar = dpg.add_progress_bar(label="progress", show=False)
 
-        slow_warning = dpg.add_loading_indicator()
-        dpg.hide_item(slow_warning)
+        slow_warning = dpg.add_loading_indicator(show=False)
 
         viewer = dpg.add_text(label="Text", tag="viewer")
         viz = dpg.add_text("Visualizing...")
