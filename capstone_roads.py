@@ -15,6 +15,8 @@ from icecream import ic
 
 # pip install tqdm
 from tqdm import tqdm
+import geopandas as gpd
+
 
 # pip install networkx
 import networkx as nx
@@ -221,7 +223,7 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
     return list_of_connected_dicts, connected_sfs
 
 
-def show_results(list_of_connected_dicts):
+def show_results(list_of_connected_dicts, shape_files):
     ic("this might take some time")
     df = pd.DataFrame(list_of_connected_dicts)
     # takes a while to put back into queriable format
@@ -343,19 +345,17 @@ def show_results(list_of_connected_dicts):
         "road_pca_2.png", bbox_inches="tight"
     )  # puts it in the working directory -- where this app is located and executed from
     plt.close(fig)
-
-    return cols
-
-
-def plot(shape_files):
-    gpd_files = gpd.GeoSeries(shape_files)  # passed in shape_files
+    
+    gpd_files = gpd.GeoSeries(shape_files, crs=4326)  # passed in shape_files
     fig, ax = plt.subplots()
-    gpd_files.plot(ax=ax)
+    gpd_files.plot(ax=ax, color=cols)
 
     plt.savefig(
-        "orig_roads_2.png", bbox_inches="tight"
+        "road_clustering_2.png", bbox_inches="tight"
     )  # puts it in the working directory
     plt.close()
+
+    return cols
 
 
 def setup(filepath):
@@ -369,6 +369,9 @@ def setup(filepath):
     )
 
     data = gpd.read_file(filepath)
+    
+    print(data["FULLNAME"].head(10))
+    
     try:
         os.remove("road_pca_2.png")  # removes any existing PCA visualization
     except:
@@ -399,13 +402,12 @@ def setup(filepath):
     )
 
 
-def validate(data, set_of_looked_at_roads):
+def validate(data, set_of_looked_at_roads, shape_files):
     for i in range(len(data)):
-        if data["FULLNAME"][i] in set_of_looked_at_roads:
+        if data["FULLNAME"][i] in set_of_looked_at_roads or data["FULLNAME"][i] is None:
             pass
         else:
             ic("Our i is", i, "and our road_name is", data["FULLNAME"][i])
-
 
 def main(filepath):
     (
@@ -420,18 +422,31 @@ def main(filepath):
 
     # in the old formulation, this would give us the progress bar
     # for i in tqdm(range(size)):
-    list_of_dicts, set_of_looked_at_roads = loop_through_roads(
-        set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
-    )
+    
+    i = 0
+    while i < 100000:
+        try:
+            i = i + 1
+            val = next(
+                create_data_for_road(
+                    i, set_of_looked_at_roads, list_of_dicts, tree, data
+                )
+            )
+        except:
+            pass
+    
+    # list_of_dicts, set_of_looked_at_roads = loop_through_roads(
+    #     set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
+    # )
 
     list_of_connected_dicts, shape_files_connected = graph_analysis(
         list_of_dicts, start_time, shape_files
     )
 
-    show_results(list_of_connected_dicts)
+    show_results(list_of_connected_dicts, shape_files_connected)
 
-    validate(data, set_of_looked_at_roads)
+    validate(data, set_of_looked_at_roads, shape_files)
 
 
 if __name__ == "__main__":
-    main(filepath="tl_2022_06047_roads.zip")
+    main(filepath="tl_2022_51001_roads.zip")

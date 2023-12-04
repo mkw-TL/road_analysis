@@ -39,24 +39,6 @@ def main():
 
         dpg.hide_item(slow_warning)
 
-        gpd_files = gpd.GeoSeries(shape_files, crs=4326)  # passed in shape_files
-        fig, ax = plt.subplots()
-        gpd_files.plot(ax=ax, color=cols_list)
-
-        # df = pd.DataFrame(list_of_connected_dicts)
-        # new_df = df.loc[df["road_name"] == "Kendall Dr"]
-        # new_df = df.loc[df["road_name"] == "Sunset Dr"]
-        # print(new_df)
-        # ic(new_df.shape)
-
-        plt.savefig(
-            "road_clustering_2.png", bbox_inches="tight"
-        )  # puts it in the working directory
-        plt.close()
-
-        # needs time to savefig first
-        time.sleep(0.02)
-
         width1, height1, channels, data2 = dpg.load_image("road_clustering_2.png")
         width2, height2, channels, data_loadings = dpg.load_image(
             "pca_w_loadings_2.png"
@@ -142,7 +124,7 @@ def main():
             list_of_dicts, start_time, shape_files
         )
 
-        cols_list = capstone_roads.show_results(list_of_connected_dicts)
+        cols_list = capstone_roads.show_results(list_of_connected_dicts, shape_files)
         dpg.hide_item(text1)
         dpg.hide_item(button1)
         dpg.hide_item(button2)
