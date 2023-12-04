@@ -170,11 +170,12 @@ def main():
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
         )
         request = driver.wait_for_request(".zip", 60)
+        time.sleep(.5)
         request = str(request)
         zip_label = request.split("2022_")[1]
         zip_label = zip_label.split("_roads")[0]
         print("zip label is", zip_label)
-        driver.implicitly_wait(1)
+        driver.implicitly_wait(5)
         element = driver.find_elements(By.TAG_NAME, "option")
         associated_county = "na"
         for e in element:
@@ -185,7 +186,7 @@ def main():
 
         driver.close()
 
-        time.sleep(0.3)
+        time.sleep(1)
 
         dpg.hide_item(text1_5)
         dpg.hide_item(text1)

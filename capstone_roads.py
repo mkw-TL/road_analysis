@@ -177,10 +177,13 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
             # enumerate on list_of_dicts rather than G. G is our graph, and it yields the name
             if "road_name" in this_road:
                 # check if this road is part of the set
-                if this_road["road_name"] in G2:
+                if this_road["road_name"] in G2 and not this_road["road_name"] is None:
                     list_of_connected_dicts.append(this_road)
                     orig_idxs.append(i)
                     G3.add_node(this_road["road_name"], data=this_road)
+                else:
+                    ic(this_road)
+                    ic(i)
 
         for i, conn_road in enumerate(list_of_connected_dicts):
             # loop through again because edges have to come after nodes
@@ -188,7 +191,13 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
                 road_name = conn_road["road_name"]
                 connections = conn_road["connections_names"]
                 for connection in connections:
-                    G3.add_edge(road_name, connection)
+                    try:
+                        G3.add_edge(road_name, connection)
+                    except:
+                        pass
+            else:
+                ic(conn_road)
+                ic(i)
         ic("number of nodes is", str(G3.number_of_nodes()))
         ic("number of edges is", str(G3.number_of_edges()))
         centr = nx.degree_centrality(G3)
