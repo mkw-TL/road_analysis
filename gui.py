@@ -103,23 +103,27 @@ def main():
 
         # in the old formulation, this would give us the progress bar
         # for i in tqdm(range(size)):
+        
+        list_of_dicts, set_of_looked_at_roads = capstone_roads.loop_through_roads(
+        set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
+        )
 
-        i = 0
-        while True:
-            try:
-                i = i + 1
-                val = next(
-                    capstone_roads.create_data_for_road(
-                        i, set_of_looked_at_roads, list_of_dicts, tree, data
-                    )
-                )
-                dpg.set_value(
-                    "viewer",
-                    f"{val + 1} out of {num_roads} ({round(val*100/num_roads, 1)}%)",
-                )
-            except:
-                dpg.hide_item(progress_bar)
-                break
+        # i = 0
+        # while True:
+        #     try:
+        #         i = i + 1
+        #         val = next(
+        #             capstone_roads.create_data_for_road(
+        #                 i, set_of_looked_at_roads, list_of_dicts, tree, data
+        #             )
+        #         )
+        #         dpg.set_value(
+        #             "viewer",
+        #             f"{val + 1} out of {num_roads} ({round(val*100/num_roads, 1)}%)",
+        #         )
+        #     except:
+        #         dpg.hide_item(progress_bar)
+        #         break
 
         list_of_connected_dicts, shape_files = capstone_roads.graph_analysis(
             list_of_dicts, start_time, shape_files

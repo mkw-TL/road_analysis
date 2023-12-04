@@ -61,57 +61,61 @@ def get_neighbors_and_update(this_dict, this_name, this_line, tree, data):
     return this_dict
 
 
-def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
-    this_dict = {
-        "road_name": "",
-        "connections_names": [],
-        "is_named": 1,
-        "self_connections": 0,
-        "number_of_connector_roads": 0,
-        "length": 0,
-    }
-    this_line = data["geometry"][i]
-    this_name = data["FULLNAME"][i]
-
-    # first and last character of road are numeric
-    if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
-        this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
-    ):
-        this_dict["is_named"] = 0.9  # arbitrary value for false
-
-    if this_name not in set_of_looked_at_roads:
-        # ignore it if the road has been looked at
-        set_of_looked_at_roads.add(this_name)
-        this_dict["road_name"] = this_name
-        this_dict["length"] = shapely.length(this_line)
-        this_dict["number_of_parts"] = 1
-        # main update step
-        this_dict = get_neighbors_and_update(
-            this_dict, this_name, this_line, tree, data
-        )
-        list_of_dicts.append(this_dict)
-    else:  # if you have seen the road before
-        orig_ind = 100000000
-        # find the original road, so that you can append to it later
-        # can't use this_dict anymore
-        for ind in range(len(list_of_dicts)):
-            if this_name == list_of_dicts[ind]["road_name"]:
-                orig_ind = ind
-                break
-        this_dict = list_of_dicts[orig_ind]
-
-        this_dict["length"] += shapely.length(this_line)
-        this_dict["number_of_parts"] += 1
-        this_dict = get_neighbors_and_update(
-            this_dict, this_name, this_line, tree, data
-        )
-        list_of_dicts[orig_ind] = this_dict  # the modifications go back in
-    yield i
-
-
 def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_roads):
+    def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
+        this_dict = {
+            "road_name": "",
+            "connections_names": [],
+            "is_named": 1,
+            "self_connections": 0,
+            "number_of_connector_roads": 0,
+            "length": 0,
+        }
+        this_line = data["geometry"][i]
+        this_name = data["FULLNAME"][i]
+        
+        if this_name is None:
+            pass
+        else:
+
+            # first and last character of road are numeric
+            if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
+                this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
+            ):
+                this_dict["is_named"] = 0.9  # arbitrary value for false
+
+            if this_name not in set_of_looked_at_roads:
+                # ignore it if the road has been looked at
+                set_of_looked_at_roads.add(this_name)
+                this_dict["road_name"] = this_name
+                this_dict["length"] = shapely.length(this_line)
+                this_dict["number_of_parts"] = 1
+                # main update step
+                this_dict = get_neighbors_and_update(
+                    this_dict, this_name, this_line, tree, data
+                )
+                list_of_dicts.append(this_dict)
+            else:  # if you have seen the road before
+                orig_ind = 100000000
+                # find the original road, so that you can append to it later
+                # can't use this_dict anymore
+                for ind in range(len(list_of_dicts)):
+                    if this_name == list_of_dicts[ind]["road_name"]:
+                        orig_ind = ind
+                        break
+                this_dict = list_of_dicts[orig_ind]
+
+                this_dict["length"] += shapely.length(this_line)
+                this_dict["number_of_parts"] += 1
+                this_dict = get_neighbors_and_update(
+                    this_dict, this_name, this_line, tree, data
+                )
+                list_of_dicts[orig_ind] = this_dict  # the modifications go back in
+        yield i
+
+    
     i = 0
-    while True and i % 100 == 0:
+    while i < num_roads:
         try:
             print(
                 next(
@@ -123,8 +127,11 @@ def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_ro
             )
             print("/", str(num_roads))
             i = i + 1
-        except:
-            return list_of_dicts, set_of_looked_at_roads
+        except Exception as e:
+            ic(e.with_traceback)
+            break
+    
+    return list_of_dicts, set_of_looked_at_roads
 
 
 def graph_analysis(list_of_dicts, start_time, shape_files):
@@ -381,7 +388,7 @@ def setup(filepath):
     shape_files = data["geometry"]
 
     for j in range(num_roads):
-        if str(data["FULLNAME"][j]) == "nan":
+        if str(data["FULLNAME"][j]) == "nan" or data["FULLNAME"][j] is None:
             # the primary cleaning step. Converts roads without names and gives them numeric labels
             data["FULLNAME"][j] = str(data["LINEARID"][j])
 
@@ -423,21 +430,21 @@ def main(filepath):
     # in the old formulation, this would give us the progress bar
     # for i in tqdm(range(size)):
     
-    i = 0
-    while i < 100000:
-        try:
-            i = i + 1
-            val = next(
-                create_data_for_road(
-                    i, set_of_looked_at_roads, list_of_dicts, tree, data
-                )
-            )
-        except:
-            pass
+    # i = 0
+    # while i < 100000:
+    #     try:
+    #         i = i + 1
+    #         val = next(
+    #             create_data_for_road(
+    #                 i, set_of_looked_at_roads, list_of_dicts, tree, data
+    #             )
+    #         )
+    #     except:
+    #         pass
     
-    # list_of_dicts, set_of_looked_at_roads = loop_through_roads(
-    #     set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
-    # )
+    list_of_dicts, set_of_looked_at_roads = loop_through_roads(
+        set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
+    )
 
     list_of_connected_dicts, shape_files_connected = graph_analysis(
         list_of_dicts, start_time, shape_files
