@@ -143,7 +143,10 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
             road_name = road_data["road_name"]
             connections = road_data["connections_names"]
             for connection in connections:
-                G.add_edge(road_name, connection)
+                try:
+                    G.add_edge(road_name, connection)
+                except:
+                    pass
 
     ic("Time is", timeit.default_timer() - start_time)
     ic("Number of roads in G is", len(G))

@@ -33,7 +33,7 @@ def main():
     dpg.create_context()
 
     def visualize(list_of_connected_dicts, shape_files, cols_list, county, state):
-        project.get_vmt_county(county, state)
+        # project.get_vmt_county(county, state)
 
         time.sleep(0.02)
 
@@ -61,7 +61,7 @@ def main():
         width2, height2, channels, data_loadings = dpg.load_image(
             "pca_w_loadings_2.png"
         )
-        width3, height3, channels, AV_pred_dat = dpg.load_image("AV_pred.png")
+        # width3, height3, channels, AV_pred_dat = dpg.load_image("AV_pred.png")
         # width3, height3, channels, data = dpg.load_image("road_pca_2.png")
 
         with dpg.texture_registry(show=False):
@@ -79,13 +79,14 @@ def main():
                 tag="pca_w_loadings",
             )
 
-        with dpg.texture_registry(show=False):
-            dpg.add_static_texture(
-                width=width3,
-                height=height3,
-                default_value=AV_pred_dat,
-                tag="AV_pred",
-            )
+        # with dpg.texture_registry(show=False):
+        #     dpg.add_static_texture(
+        #         width=width3,
+        #         height=height3,
+        #         default_value=AV_pred_dat,
+        #         tag="AV_pred",
+        #     )
+
         # with dpg.texture_registry(show=False):
         #     dpg.add_static_texture(
         #         width=width3, height=height3, default_value=data, tag="road_pca"
@@ -94,7 +95,7 @@ def main():
         with dpg.window(label="Clustering Results"):
             dpg.add_image("road_clustering")
             dpg.add_image("pca_w_loadings")
-            dpg.add_image("AV_pred")
+            # dpg.add_image("AV_pred")
             # dpg.add_image("road_pca")
 
     def run_script():
@@ -145,7 +146,6 @@ def main():
         dpg.hide_item(text1)
         dpg.hide_item(button1)
         dpg.hide_item(button2)
-        dpg.hide_item(text2)
         dpg.hide_item(zip)
         dpg.hide_item(text0)
         dpg.show_item(viz)
@@ -159,9 +159,12 @@ def main():
         print(directory)
         dir = str(directory[0])
         dpg.set_value(fp, dir)
+        dpg.hide_item(zip)
         dpg.show_item(run_button)
+        app.quit()
 
     def download(sender, data, user_data):
+        dpg.show_item(text1_5)
         driver = webdriver.Firefox()
         driver.get(
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
@@ -182,9 +185,18 @@ def main():
 
         driver.close()
 
-        time.sleep(0.2)
+        time.sleep(0.3)
+
+        dpg.hide_item(text1_5)
+        dpg.hide_item(text1)
+        dpg.hide_item(button1)
+        dpg.hide_item(text0)
+        dpg.hide_item(button2)
+        dpg.hide_item(spacing)
 
         dpg.show_item(downloaded)
+        dpg.show_item(zip)
+        dpg.show_item(fp)
 
         ic(associated_county)
         ic(associated_state)
@@ -209,24 +221,27 @@ def main():
             )
 
     with dpg.window(label="Chose Road Network to Analyze", width=600, height=350):
-        text0 = dpg.add_text("Only works County-wide")
+        text0 = dpg.add_text(
+            "Find County associated with City (Does not work with Cities)"
+        )
         button2 = dpg.add_button(
             label="Find County",
             callback=city_finder,
         )
-        dpg.add_text("")
+        spacing = dpg.add_text("")
         text1 = dpg.add_text(
             ">> Select the County to download your roads from. Choose from 'All Roads'"
         )
         button1 = dpg.add_button(label="Download Roads", callback=download)
+        text1_5 = dpg.add_text("Loading")
+        dpg.hide_item(text1_5)
         downloaded = dpg.add_text("Your file has been downloaded!")
         dpg.hide_item(downloaded)
         dpg.add_text("")
-        text2 = dpg.add_text("...once files are downloaded")
         zip = dpg.add_button(label="Locate File", callback=get_user_link)
-        dpg.add_text("")
-
+        dpg.hide_item(zip)
         fp = dpg.add_text(label="file_path", default_value="no path defined yet")
+        dpg.hide_item(fp)
 
         run_button = dpg.add_button(
             label="Run", callback=run_script, user_data=dpg.get_value(fp)

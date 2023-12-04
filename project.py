@@ -275,11 +275,14 @@ def get_vmt_county(
 
     # ARIMA Model
 
-    d = ndiffs(data)
-    D = nsdiffs(data, m=12)  # Assuming monthly data with a yearly seasonality (m=12)
+    # d = ndiffs(data)
+    # D = nsdiffs(data, m=12)  # Assuming monthly data with a yearly seasonality (m=12)
 
+    # stepwise_fit = auto_arima(
+    #     vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
+    # )
     stepwise_fit = auto_arima(
-        vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
+        vmt_county, d=3, D=3, seasonal=True, m=12, error_action="ignore"
     )
 
     print(stepwise_fit.summary())
