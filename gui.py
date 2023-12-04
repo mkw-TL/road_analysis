@@ -151,17 +151,44 @@ def main():
         dpg.show_item(viz)
         visualize(list_of_connected_dicts, shape_files, cols_list, county, state)
 
+    def callback(sender, app_data):
+        print("OK was clicked.")
+        print("Sender: ", sender)
+        print("App Data: ", app_data)
+
+    def cancel_callback(sender, app_data):
+        print("Cancel was clicked.")
+        print("Sender: ", sender)
+        print("App Data: ", app_data)
+
     def get_user_link():
-        app = QApplication([])  # Create a QApplication instance if not already created
-        directory = QFileDialog.getOpenFileName(
-            None, "Select Directory", "", "Zip Files (*.zip);;SHP Files (*.shp)"
-        )
-        print(directory)
-        dir = str(directory[0])
-        dpg.set_value(fp, dir)
-        dpg.hide_item(zip)
-        dpg.show_item(run_button)
-        app.quit()
+        with dpg.add_file_dialog(
+            directory_selector=True,
+            show=False,
+            callback=callback,
+            tag="file_dialog_id",
+            cancel_callback=cancel_callback,
+            width=700,
+            height=400,
+        ):
+            dpg.add_file_extension(".zip")
+
+        with dpg.window(label="Tutorial", width=800, height=300):
+            dpg.add_button(
+                label="Directory Selector",
+                callback=lambda: dpg.show_item("file_dialog_id"),
+            )
+
+        # app = QApplication([])  # Create a QApplication instance if not already created
+        # directory = QFileDialog.getOpenFileName(
+        #     None, "Select Directory", "", "Zip Files (*.zip);;SHP Files (*.shp)"
+        # )
+        # print(directory)
+        # dir = str(directory[0])
+        # dpg.set_value(fp, dir)
+        # dpg.hide_item(zip)
+        # dpg.show_item(run_button)
+        # app.quit()
 
     def download(sender, data, user_data):
         dpg.show_item(text1_5)
@@ -170,7 +197,7 @@ def main():
             "https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2022&layergroup=Roads"
         )
         request = driver.wait_for_request(".zip", 60)
-        time.sleep(.5)
+        time.sleep(0.5)
         request = str(request)
         zip_label = request.split("2022_")[1]
         zip_label = zip_label.split("_roads")[0]
