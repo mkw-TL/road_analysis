@@ -34,7 +34,7 @@ def main():
     dpg.create_context()
 
     def visualize(list_of_connected_dicts, shape_files, cols_list, county, state):
-        # project.get_vmt_county(county, state)
+        project.get_vmt_county(county, state)
 
         time.sleep(0.02)
 
@@ -44,7 +44,7 @@ def main():
         width2, height2, channels, data_loadings = dpg.load_image(
             "pca_w_loadings_2.png"
         )
-        # width3, height3, channels, AV_pred_dat = dpg.load_image("AV_pred.png")
+        width3, height3, channels, AV_pred_dat = dpg.load_image("AV_pred.png")
         # width3, height3, channels, data = dpg.load_image("road_pca_2.png")
 
         with dpg.texture_registry(show=False):
@@ -62,13 +62,13 @@ def main():
                 tag="pca_w_loadings",
             )
 
-        # with dpg.texture_registry(show=False):
-        #     dpg.add_static_texture(
-        #         width=width3,
-        #         height=height3,
-        #         default_value=AV_pred_dat,
-        #         tag="AV_pred",
-        #     )
+        with dpg.texture_registry(show=False):
+            dpg.add_static_texture(
+                width=width3,
+                height=height3,
+                default_value=AV_pred_dat,
+                tag="AV_pred",
+            )
 
         # with dpg.texture_registry(show=False):
         #     dpg.add_static_texture(
@@ -104,9 +104,9 @@ def main():
 
         # in the old formulation, this would give us the progress bar
         # for i in tqdm(range(size)):
-        
+
         list_of_dicts, set_of_looked_at_roads = capstone_roads.loop_through_roads(
-        set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
+            set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
         )
 
         # i = 0
@@ -243,10 +243,14 @@ def main():
         downloaded = dpg.add_text("Your file has been downloaded!", show=False)
         dpg.add_text("")
         # zip = dpg.add_button(label="Locate File", callback=get_user_link, show=False)
-        fp = dpg.add_text(show=False)
+        fp = dpg.add_text(
+            default_value="Type in the path to the file below", show=False
+        )
 
         file_dialog = dpg.add_input_text(
-            default_value="C:/Users/YOUR_NAME/Downloads/tl_2022_NUMBER_roads.zip", callback=check, show=False
+            default_value="C:/Users/YOUR_NAME/Downloads/tl_2022_NUMBER_roads.zip",
+            callback=check,
+            show=False,
         )
 
         run_button = dpg.add_button(
@@ -258,7 +262,9 @@ def main():
 
         slow_warning = dpg.add_loading_indicator(show=False)
 
-        viewer = dpg.add_text("progress shown in terminal", label="Text", tag="viewer", show=False)
+        viewer = dpg.add_text(
+            "progress shown in terminal", label="Text", tag="viewer", show=False
+        )
         viz = dpg.add_text("Visualizing...")
         dpg.hide_item(viz)
         # dpg.hide_item(viewer)
@@ -270,6 +276,7 @@ def main():
     dpg.show_viewport()
     dpg.start_dearpygui()
     dpg.destroy_context()
+
 
 if __name__ == "__main__":
     main()
