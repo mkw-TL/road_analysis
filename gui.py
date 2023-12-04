@@ -82,6 +82,7 @@ def main():
             # dpg.add_image("road_pca")
 
     def run_script():
+        dpg.show_item(viewer)
         filepath = dpg.get_value(file_dialog)
         county = dpg.get_item_user_data(button1)[0]
         state = dpg.get_item_user_data(button1)[1]
@@ -187,9 +188,9 @@ def main():
             if str(e.get_attribute("value")) == zip_label[:2]:
                 associated_state = e.text
 
-        driver.close()
+        # driver.close() -- users are too fast
 
-        time.sleep(1)
+        # time.sleep(1)
 
         dpg.hide_item(text1_5)
         dpg.hide_item(text1)
@@ -245,7 +246,7 @@ def main():
         fp = dpg.add_text(show=False)
 
         file_dialog = dpg.add_input_text(
-            default_value="Path/To/File", callback=check, show=False
+            default_value="C:/Users/YOUR_NAME/Downloads/tl_2022_NUMBER_roads.zip", callback=check, show=False
         )
 
         run_button = dpg.add_button(
@@ -255,11 +256,9 @@ def main():
             show=False,
         )
 
-        progress_bar = dpg.add_progress_bar(label="progress", show=False)
-
         slow_warning = dpg.add_loading_indicator(show=False)
 
-        viewer = dpg.add_text(label="Text", tag="viewer")
+        viewer = dpg.add_text("progress shown in terminal", label="Text", tag="viewer", show=False)
         viz = dpg.add_text("Visualizing...")
         dpg.hide_item(viz)
         # dpg.hide_item(viewer)
@@ -271,7 +270,6 @@ def main():
     dpg.show_viewport()
     dpg.start_dearpygui()
     dpg.destroy_context()
-
 
 if __name__ == "__main__":
     main()
