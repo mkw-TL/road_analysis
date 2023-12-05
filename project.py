@@ -184,7 +184,7 @@ def get_vmt_change(state):
     matching_row = vmt_per_500_cars_df[vmt_per_500_cars_df["State"] == state]
 
     # Return the resulting increase
-    return matching_row.iloc[0]["VMT per 500 Cars Added"] / 12
+    return matching_row.iloc[0]["VMT per 500 Cars Added"] / 12 / 1000000
 
 
 def get_vmt_county(
@@ -246,7 +246,7 @@ def get_vmt_county(
 
     # average vmt per av
     avg_vmt_per_car = (
-        av_data["ANNUAL TOTAL"].sum() / len(av_data["ANNUAL TOTAL"]) / (1000000 * 12)
+        av_data["ANNUAL TOTAL"].sum() / len(av_data["ANNUAL TOTAL"]) / (12)
     )
 
     # Query the state
@@ -275,14 +275,14 @@ def get_vmt_county(
 
     # ARIMA Model
 
-    # d = ndiffs(data)
-    # D = nsdiffs(data, m=12)  # Assuming monthly data with a yearly seasonality (m=12)
+    d = ndiffs(data)
+    D = nsdiffs(data, m=12)  # Assuming monthly data with a yearly seasonality (m=12)
 
     # stepwise_fit = auto_arima(
     #     vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
     # )
     stepwise_fit = auto_arima(
-        vmt_county, d=3, D=3, seasonal=True, m=12, error_action="ignore"
+        vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
     )
 
     print(stepwise_fit.summary())
@@ -303,7 +303,7 @@ def get_vmt_county(
     state_estimate = get_vmt_change(state)
 
     # Taking into account AVs
-    pred = [x + state_estimate for x in forecast]
+    pred = [x + state_estimate * 100000 for x in forecast]
 
     coef = [
         -0.366482332,
@@ -318,7 +318,7 @@ def get_vmt_county(
     r = 1.05
     y = 1
     for i in forecast:
-        with_avs.append((i + abs(coef[j] * road_types[j])) * r)
+        with_avs.append((i + abs(coef[j] * num_avs * (road_types[j] / 1e6))) * r)
         if y % 12 == 0:
             r += 0.05
         if j > 4:
@@ -364,3 +364,6 @@ def added_road_cost(miles):
 def rubber_polution(miles):
     rubber = 0.00032 * miles
     return rubber
+
+# County in which city of Lexington is located
+get_vmt_county("Providence County", "Rhode Island")
