@@ -278,23 +278,31 @@ def get_vmt_county(
     d = ndiffs(data)
     D = nsdiffs(data, m=12)  # Assuming monthly data with a yearly seasonality (m=12)
 
+
+    # commented out Auto Arima 
     # stepwise_fit = auto_arima(
     #     vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
     # )
-    stepwise_fit = auto_arima(
-        vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
-    )
 
-    print(stepwise_fit.summary())
-    fit = stepwise_fit.order
 
-    fit_seas = list(stepwise_fit.order)
-    fit_seas.append(12)
+    # stepwise_fit = auto_arima(
+    #     vmt_county, d=d, D=D, seasonal=True, m=12, error_action="ignore"
+    # )
+
+    # print(stepwise_fit.summary())
+    # fit = stepwise_fit.order
+
+
+    # AR(1)
+    fit = (1,0,0)
+    fit_seas = list(fit)
+    fit_seas.append(12) # added for seasonal monthly data
     #     print(fit_seas)
 
+    
     model = ARIMA(
         data, order=fit, seasonal_order=fit_seas
-    )  # Example order, you might need to tune this
+    )  
 
     model_fit = model.fit()
 
@@ -315,7 +323,7 @@ def get_vmt_county(
     ]
     with_avs = []
     j = 0
-    r = 1.05
+    r = 1.05 # national VMT increase of about 5% yearly according to FHWA
     y = 1
     for i in forecast:
         with_avs.append((i + abs(coef[j] * num_avs * (road_types[j] / 1e6))) * r)
@@ -365,5 +373,5 @@ def rubber_polution(miles):
     rubber = 0.00032 * miles
     return rubber
 
-# County in which city of Lexington is located
-get_vmt_county("Providence County", "Rhode Island")
+
+get_vmt_county("Merced County", "California")
