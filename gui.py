@@ -34,11 +34,37 @@ def main():
     dpg.create_context()
 
     def visualize(list_of_connected_dicts, shape_files, cols_list, county, state):
-        project.get_vmt_county(county, state)
+        # project.get_vmt_county(county, state)
+
+        # cols_list TODO work on this
 
         time.sleep(0.02)
 
         dpg.hide_item(slow_warning)
+
+        with dpg.window(label="Manually Label Roads to Classification"):
+            first_cluster = dpg.add_text(
+                "here are the roads in the first cluster with lengths"
+            )
+            first_cat = dpg.add_radio_button(
+                ["type1", "type2", "type3", "type4", "type5", "type6"],
+                indent=-1,
+                horizontal=True,
+            )
+            second_cluster = dpg.add_text(
+                "here are the roads in the second cluster with lengths"
+            )
+            second_cat = dpg.add_radio_button(
+                ["type1", "type2", "type3", "type4", "type5", "type6"], horizontal=True
+            )
+            third_cluster = dpg.add_text(
+                "here are the roads in the third cluster with lengths"
+            )
+            third_cat = dpg.add_radio_button(
+                ["type1", "type2", "type3", "type4", "type5", "type6"],
+                indent=-1,
+                horizontal=True,
+            )
 
         width1, height1, channels, data2 = dpg.load_image("road_clustering_2.png")
         width2, height2, channels, data_loadings = dpg.load_image(
@@ -78,7 +104,7 @@ def main():
         with dpg.window(label="Clustering Results"):
             dpg.add_image("road_clustering")
             dpg.add_image("pca_w_loadings")
-            # dpg.add_image("AV_pred")
+            dpg.add_image("AV_pred")
             # dpg.add_image("road_pca")
 
     def run_script():
