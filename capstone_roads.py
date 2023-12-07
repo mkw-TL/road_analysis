@@ -15,6 +15,8 @@ from icecream import ic
 
 # pip install tqdm
 from tqdm import tqdm
+import geopandas as gpd
+
 
 # pip install networkx
 import networkx as nx
@@ -59,57 +61,61 @@ def get_neighbors_and_update(this_dict, this_name, this_line, tree, data):
     return this_dict
 
 
-def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
-    this_dict = {
-        "road_name": "",
-        "connections_names": [],
-        "is_named": 1,
-        "self_connections": 0,
-        "number_of_connector_roads": 0,
-        "length": 0,
-    }
-    this_line = data["geometry"][i]
-    this_name = data["FULLNAME"][i]
-
-    # first and last character of road are numeric
-    if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
-        this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
-    ):
-        this_dict["is_named"] = 0.9  # arbitrary value for false
-
-    if this_name not in set_of_looked_at_roads:
-        # ignore it if the road has been looked at
-        set_of_looked_at_roads.add(this_name)
-        this_dict["road_name"] = this_name
-        this_dict["length"] = shapely.length(this_line)
-        this_dict["number_of_parts"] = 1
-        # main update step
-        this_dict = get_neighbors_and_update(
-            this_dict, this_name, this_line, tree, data
-        )
-        list_of_dicts.append(this_dict)
-    else:  # if you have seen the road before
-        orig_ind = 100000000
-        # find the original road, so that you can append to it later
-        # can't use this_dict anymore
-        for ind in range(len(list_of_dicts)):
-            if this_name == list_of_dicts[ind]["road_name"]:
-                orig_ind = ind
-                break
-        this_dict = list_of_dicts[orig_ind]
-
-        this_dict["length"] += shapely.length(this_line)
-        this_dict["number_of_parts"] += 1
-        this_dict = get_neighbors_and_update(
-            this_dict, this_name, this_line, tree, data
-        )
-        list_of_dicts[orig_ind] = this_dict  # the modifications go back in
-    yield i
-
-
 def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_roads):
+    def create_data_for_road(i, set_of_looked_at_roads, list_of_dicts, tree, data):
+        this_dict = {
+            "road_name": "",
+            "connections_names": [],
+            "is_named": 1,
+            "self_connections": 0,
+            "number_of_connector_roads": 0,
+            "length": 0,
+        }
+        this_line = data["geometry"][i]
+        this_name = data["FULLNAME"][i]
+        
+        if this_name is None:
+            pass
+        else:
+
+            # first and last character of road are numeric
+            if (this_name[0] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}) and (
+                this_name[-1] in {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
+            ):
+                this_dict["is_named"] = 0.9  # arbitrary value for false
+
+            if this_name not in set_of_looked_at_roads:
+                # ignore it if the road has been looked at
+                set_of_looked_at_roads.add(this_name)
+                this_dict["road_name"] = this_name
+                this_dict["length"] = shapely.length(this_line)
+                this_dict["number_of_parts"] = 1
+                # main update step
+                this_dict = get_neighbors_and_update(
+                    this_dict, this_name, this_line, tree, data
+                )
+                list_of_dicts.append(this_dict)
+            else:  # if you have seen the road before
+                orig_ind = 100000000
+                # find the original road, so that you can append to it later
+                # can't use this_dict anymore
+                for ind in range(len(list_of_dicts)):
+                    if this_name == list_of_dicts[ind]["road_name"]:
+                        orig_ind = ind
+                        break
+                this_dict = list_of_dicts[orig_ind]
+
+                this_dict["length"] += shapely.length(this_line)
+                this_dict["number_of_parts"] += 1
+                this_dict = get_neighbors_and_update(
+                    this_dict, this_name, this_line, tree, data
+                )
+                list_of_dicts[orig_ind] = this_dict  # the modifications go back in
+        yield i
+
+    
     i = 0
-    while True and i % 100 == 0:
+    while i < num_roads:
         try:
             print(
                 next(
@@ -121,8 +127,11 @@ def loop_through_roads(set_of_looked_at_roads, list_of_dicts, tree, data, num_ro
             )
             print("/", str(num_roads))
             i = i + 1
-        except:
-            return list_of_dicts, set_of_looked_at_roads
+        except Exception as e:
+            ic(e.with_traceback)
+            break
+    
+    return list_of_dicts, set_of_looked_at_roads
 
 
 def graph_analysis(list_of_dicts, start_time, shape_files):
@@ -143,7 +152,10 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
             road_name = road_data["road_name"]
             connections = road_data["connections_names"]
             for connection in connections:
-                G.add_edge(road_name, connection)
+                try:
+                    G.add_edge(road_name, connection)
+                except:
+                    pass
 
     ic("Time is", timeit.default_timer() - start_time)
     ic("Number of roads in G is", len(G))
@@ -174,10 +186,13 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
             # enumerate on list_of_dicts rather than G. G is our graph, and it yields the name
             if "road_name" in this_road:
                 # check if this road is part of the set
-                if this_road["road_name"] in G2:
+                if this_road["road_name"] in G2 and not this_road["road_name"] is None:
                     list_of_connected_dicts.append(this_road)
                     orig_idxs.append(i)
                     G3.add_node(this_road["road_name"], data=this_road)
+                else:
+                    ic(this_road)
+                    ic(i)
 
         for i, conn_road in enumerate(list_of_connected_dicts):
             # loop through again because edges have to come after nodes
@@ -185,7 +200,13 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
                 road_name = conn_road["road_name"]
                 connections = conn_road["connections_names"]
                 for connection in connections:
-                    G3.add_edge(road_name, connection)
+                    try:
+                        G3.add_edge(road_name, connection)
+                    except:
+                        pass
+            else:
+                ic(conn_road)
+                ic(i)
         ic("number of nodes is", str(G3.number_of_nodes()))
         ic("number of edges is", str(G3.number_of_edges()))
         centr = nx.degree_centrality(G3)
@@ -209,7 +230,7 @@ def graph_analysis(list_of_dicts, start_time, shape_files):
     return list_of_connected_dicts, connected_sfs
 
 
-def show_results(list_of_connected_dicts):
+def show_results(list_of_connected_dicts, shape_files):
     ic("this might take some time")
     df = pd.DataFrame(list_of_connected_dicts)
     # takes a while to put back into queriable format
@@ -331,19 +352,17 @@ def show_results(list_of_connected_dicts):
         "road_pca_2.png", bbox_inches="tight"
     )  # puts it in the working directory -- where this app is located and executed from
     plt.close(fig)
-
-    return cols
-
-
-def plot(shape_files):
-    gpd_files = gpd.GeoSeries(shape_files)  # passed in shape_files
+    
+    gpd_files = gpd.GeoSeries(shape_files, crs=4326)  # passed in shape_files
     fig, ax = plt.subplots()
-    gpd_files.plot(ax=ax)
+    gpd_files.plot(ax=ax, color=cols)
 
     plt.savefig(
-        "orig_roads_2.png", bbox_inches="tight"
+        "road_clustering_2.png", bbox_inches="tight"
     )  # puts it in the working directory
     plt.close()
+
+    return cols
 
 
 def setup(filepath):
@@ -357,6 +376,9 @@ def setup(filepath):
     )
 
     data = gpd.read_file(filepath)
+    
+    print(data["FULLNAME"].head(10))
+    
     try:
         os.remove("road_pca_2.png")  # removes any existing PCA visualization
     except:
@@ -366,7 +388,7 @@ def setup(filepath):
     shape_files = data["geometry"]
 
     for j in range(num_roads):
-        if str(data["FULLNAME"][j]) == "nan":
+        if str(data["FULLNAME"][j]) == "nan" or data["FULLNAME"][j] is None:
             # the primary cleaning step. Converts roads without names and gives them numeric labels
             data["FULLNAME"][j] = str(data["LINEARID"][j])
 
@@ -387,13 +409,12 @@ def setup(filepath):
     )
 
 
-def validate(data, set_of_looked_at_roads):
+def validate(data, set_of_looked_at_roads, shape_files):
     for i in range(len(data)):
-        if data["FULLNAME"][i] in set_of_looked_at_roads:
+        if data["FULLNAME"][i] in set_of_looked_at_roads or data["FULLNAME"][i] is None:
             pass
         else:
             ic("Our i is", i, "and our road_name is", data["FULLNAME"][i])
-
 
 def main(filepath):
     (
@@ -408,6 +429,19 @@ def main(filepath):
 
     # in the old formulation, this would give us the progress bar
     # for i in tqdm(range(size)):
+    
+    # i = 0
+    # while i < 100000:
+    #     try:
+    #         i = i + 1
+    #         val = next(
+    #             create_data_for_road(
+    #                 i, set_of_looked_at_roads, list_of_dicts, tree, data
+    #             )
+    #         )
+    #     except:
+    #         pass
+    
     list_of_dicts, set_of_looked_at_roads = loop_through_roads(
         set_of_looked_at_roads, list_of_dicts, tree, data, num_roads
     )
@@ -416,10 +450,10 @@ def main(filepath):
         list_of_dicts, start_time, shape_files
     )
 
-    show_results(list_of_connected_dicts)
+    show_results(list_of_connected_dicts, shape_files_connected)
 
-    validate(data, set_of_looked_at_roads)
+    validate(data, set_of_looked_at_roads, shape_files)
 
 
 if __name__ == "__main__":
-    main(filepath="tl_2022_06047_roads.zip")
+    main(filepath="tl_2022_51001_roads.zip")
